@@ -36,7 +36,9 @@ _COMMON_OPTS = {
 
 def _build_opts(extra=None):
     """Return a fresh options dict, injecting cookies when available."""
-    opts = {**_COMMON_OPTS, **(extra or {})}
+    # Default to a pre-merged format – requires no ffmpeg on the server
+    defaults = {'format': 'best[ext=mp4]/best[ext=webm]/best'}
+    opts = {**_COMMON_OPTS, **defaults, **(extra or {})}
     cookie_file = _get_cookie_file()
     if cookie_file:
         opts['cookiefile'] = cookie_file
@@ -78,9 +80,9 @@ def get_video_info(url: str) -> dict:
 def get_direct_download_url(url: str, format_id: str = None) -> dict:
     """Returns the direct stream URL for a specific format or the best available."""
     try:
-        extra = {'format': 'bestvideo+bestaudio/best'}
+        extra = {'format': 'best[ext=mp4]/best[ext=webm]/best'}
         if format_id:
-            extra['format'] = f"{format_id}+bestaudio/best"
+            extra['format'] = f"{format_id}/best[ext=mp4]/best"
 
         with yt_dlp.YoutubeDL(_build_opts(extra)) as ydl:
             info = ydl.extract_info(url, download=False)
