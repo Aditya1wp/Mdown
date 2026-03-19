@@ -7,6 +7,7 @@ YDL_OPTIONS = {
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
+    'extractor_args': {'youtube': {'client': ['ios', 'android', 'web']}},
 }
 
 # Configuration just for extracting info (faster)
@@ -14,6 +15,7 @@ INFO_OPTIONS = {
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
+    'extractor_args': {'youtube': {'client': ['ios', 'android', 'web']}},
 }
 
 def get_video_info(url: str) -> dict:
