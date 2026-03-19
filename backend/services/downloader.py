@@ -4,10 +4,8 @@ import tempfile
 from fastapi import HTTPException
 
 # ── Cookie helper ────────────────────────────────────────────────────────────
-# On Render, set the env variable YOUTUBE_COOKIES to the raw Netscape cookie
-# text exported from your browser (using the "Get cookies.txt LOCALLY" extension).
 def _get_cookie_file():
-    """Write the YOUTUBE_COOKIES env var to a temp file and return its path."""
+    """Write the YOUTUBE_COOKIES env var to a temp file and return its path (Render)."""
     cookies_text = os.environ.get("YOUTUBE_COOKIES", "")
     if not cookies_text.strip():
         return None
@@ -16,11 +14,16 @@ def _get_cookie_file():
     tmp.close()
     return tmp.name
 
+def _is_production():
+    """True when running on Render (env var is present)."""
+    return bool(os.environ.get("YOUTUBE_COOKIES", "").strip())
+
 # ── Common options ────────────────────────────────────────────────────────────
 _COMMON_OPTS = {
     'noplaylist': True,
     'quiet': True,
     'no_warnings': True,
+    'format': 'best',
     'http_headers': {
         'User-Agent': (
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -31,17 +34,25 @@ _COMMON_OPTS = {
         'Accept-Language': 'en-us,en;q=0.5',
         'Sec-Fetch-Mode': 'navigate',
     },
-    'extractor_args': {'youtube': {'client': ['ios', 'android', 'web']}},
+    'extractor_args': {'youtube': {'client': ['web', 'android']}},
 }
 
 def _build_opts(extra=None):
-    """Return a fresh options dict, injecting cookies when available."""
-    # Default to a pre-merged format – requires no ffmpeg on the server
-    defaults = {'format': 'best'}
-    opts = {**_COMMON_OPTS, **defaults, **(extra or {})}
-    cookie_file = _get_cookie_file()
-    if cookie_file:
-        opts['cookiefile'] = cookie_file
+    """Return a fresh options dict, injecting cookies from best available source."""
+    opts = {**_COMMON_OPTS, **(extra or {})}
+
+    if _is_production():
+        # Render: use the YOUTUBE_COOKIES env var we stored as a temp file
+        cookie_file = _get_cookie_file()
+        if cookie_file:
+            opts['cookiefile'] = cookie_file
+    else:
+        # Local development: automatically grab cookies from installed Chrome
+        try:
+            opts['cookiesfrombrowser'] = ('chrome',)
+        except Exception:
+            pass  # Chrome not found – continue without cookies
+
     return opts
 
 # ── Public functions ──────────────────────────────────────────────────────────
